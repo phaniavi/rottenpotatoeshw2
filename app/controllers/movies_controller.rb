@@ -7,6 +7,13 @@ class MoviesController < ApplicationController
     end
   
     def index
+      @all_ratings = Movie.all_ratings
+      
+      generatedRatings = {}
+      @all_ratings.each{ |rating| generatedRatings[rating] = 1 }
+
+      ratings = params[:ratings] || generatedRatings
+      
       if params[:sort].to_s == 'movies_title'
         @sort = 'movies_title'
         @movies = Movie.all.order(:title)
@@ -16,6 +23,8 @@ class MoviesController < ApplicationController
       else
         @movies = Movie.all
       end
+      @ratings_to_show = ratings.keys
+      @movies = @movies.with_ratings(ratings.keys)
     end
   
     def new
