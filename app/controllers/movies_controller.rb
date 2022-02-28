@@ -7,23 +7,59 @@ class MoviesController < ApplicationController
     end
   
     def index
-      @all_ratings = Movie.all_ratings
+      if request.env['PATH_INFO'] == '/'
+        session.clear
+      end
+        
+      sort = params[:sort]
+      submit_clicked = params[:submit_clicked]
       
+      @all_ratings = Movie.all_ratings
       generatedRatings = {}
       @all_ratings.each{ |rating| generatedRatings[rating] = 1 }
-
-      ratings = params[:ratings] || generatedRatings
       
-      if params[:sort].to_s == 'movies_title'
-        @sort = 'movies_title'
-        @movies = Movie.all.order(:title)
-      elsif params[:sort].to_s == 'release_date'
-        @sort = 'release_date'
-        @movies = Movie.all.order(:release_date)
+      ratings = {}
+      @all_ratings.each{ |rating| ratings[rating] = 1 }
+      if(submit_clicked)
+        if(!params[:ratings])
+          if(session[:ratings])
+            ratings = session[:ratings]
+          else
+            ratings = generatedRatings
+          end
+        else
+          ratings = params[:ratings]
+        session[:ratings] = ratings
+        end
+      elsif(params[:ratings]) 
+        ratings = params[:ratings]
+        session[:ratings] = ratings
+      elsif(session[:ratings])
+        ratings = session[:ratings]
       else
-        @movies = Movie.all
+        ratings = generatedRatings
+        session[:ratings] = nil
       end
-      @ratings_to_show = ratings.keys
+      
+      if(sort)
+        session[:sort] = sort
+      elsif session[:sort]
+        sort = session[:sort]
+      end
+      
+      case sort
+        when "movies_title"
+          @movies = Movie.order(:title)
+          @sort = "movies_title"
+        when "release_date"
+          @movies = Movie.order(:release_date)
+          @sort = "release_date"
+        else
+          @movies = Movie.all
+          @sort = ''
+      end
+      
+      @ratings_to_show = ratings == generatedRatings ? @all_ratings : ratings.keys
       @movies = @movies.with_ratings(ratings.keys)
     end
   
